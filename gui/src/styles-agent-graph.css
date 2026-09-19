@@ -31,7 +31,9 @@
 .agent-graph-node-icon svg { width: 14px; height: 14px; }
 .agent-graph-node-name { overflow: hidden; font-size: var(--text-control); font-weight: var(--weight-semibold); text-overflow: ellipsis; white-space: nowrap; }
 .agent-graph-node-role { overflow: hidden; color: var(--muted); font-size: var(--text-caption); text-overflow: ellipsis; white-space: nowrap; }
-.agent-graph-model { display: block; width: fit-content; max-width: 100%; overflow: hidden; padding: 3px 7px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--raised); color: var(--faint); font-family: var(--font-code); font-size: var(--text-micro); text-overflow: ellipsis; white-space: nowrap; }
+.agent-graph-model-wrap { display: grid; min-width: 0; gap: 4px; margin-top: 2px; }
+.agent-graph-model-label { color: var(--muted); font-family: var(--font-code); font-size: var(--text-micro); font-weight: var(--weight-semibold); letter-spacing: .1em; text-transform: uppercase; }
+.agent-graph-model { display: block; width: fit-content; max-width: 100%; overflow-wrap: anywhere; padding: 6px 9px; border: 1px solid var(--accent-ring); border-radius: var(--radius-xs); background: var(--accent-soft); color: var(--accent); font-family: var(--font-code); font-size: var(--text-control); font-weight: var(--weight-bold); line-height: 1.25; white-space: normal; }
 .agent-graph-node-metrics { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border-soft); color: var(--muted); font-family: var(--font-code); font-size: var(--text-micro); }
 .agent-graph-status { display: inline-flex; align-items: center; gap: 5px; width: fit-content; padding: 4px 7px; border-radius: var(--radius-pill); background: var(--raised); color: var(--muted); font-size: var(--text-micro); font-weight: var(--weight-semibold); white-space: nowrap; }
 .agent-graph-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }

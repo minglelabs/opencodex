@@ -1,7 +1,7 @@
 import { isThreadSpawnRequest } from "./effort-policy";
 import type { RequestLogContext } from "./request-log";
 
-export type AgentThreadStatus = "active" | "completed" | "error";
+export type AgentThreadStatus = "active" | "idle" | "completed" | "error";
 export type AgentNodeStatus = "running" | "idle" | "completed" | "error";
 
 export interface AgentNode {
@@ -137,7 +137,9 @@ export class AgentGraphTracker {
       }
       thread = {
         id: params.threadId,
-        title: `Thread ${params.threadId.slice(0, 8)}`,
+        title: `Thread ${params.threadId.length > 12
+          ? `${params.threadId.slice(0, 8)}…${params.threadId.slice(-4)}`
+          : params.threadId}`,
         startedAt: now,
         updatedAt: now,
         status: "active",
@@ -146,7 +148,7 @@ export class AgentGraphTracker {
       this.threads.set(params.threadId, thread);
     } else {
       thread.updatedAt = now;
-      if (thread.status === "completed") {
+      if (thread.status !== "active") {
         thread.status = "active";
       }
     }
@@ -216,7 +218,7 @@ export class AgentGraphTracker {
     // Check if all agents are idle
     const allIdle = Object.values(thread.agents).every(a => a.status === "idle" || a.status === "completed");
     if (allIdle && thread.status === "active") {
-      thread.status = "active"; // Keep active for interaction until explicitly completed or inactive
+      thread.status = "idle";
     }
   }
 

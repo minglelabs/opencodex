@@ -44,5 +44,21 @@ describe("AgentGraphTracker", () => {
     expect(tracker.getSnapshot().threads[0]?.root.status).toBe("running");
     await expect(response.text()).resolves.toBe("done");
     expect(tracker.getSnapshot().threads[0]?.root.status).toBe("idle");
+    expect(tracker.getSnapshot().threads[0]?.status).toBe("idle");
+  });
+
+  test("keeps thread labels distinct when UUIDs share their first eight characters", () => {
+    const tracker = new AgentGraphTracker();
+    for (const threadId of [
+      "01a0bac7-1111-1111-1111-aaaaaaaaaaaa",
+      "01a0bac7-2222-2222-2222-bbbbbbbbbbbb",
+    ]) {
+      tracker.recordRequestStart({ threadId, agentId: "main-agent", model: "gpt-5.6-luna" });
+    }
+
+    const titles = tracker.getSnapshot().threads.map(thread => thread.title);
+    expect(new Set(titles).size).toBe(2);
+    expect(titles).toContain("Thread 01a0bac7…aaaa");
+    expect(titles).toContain("Thread 01a0bac7…bbbb");
   });
 });

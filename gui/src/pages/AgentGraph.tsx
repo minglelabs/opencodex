@@ -110,7 +110,13 @@ function normalizeThread(raw: unknown, index: number): AgentThread {
   const root = normalizeNode(rootCandidate, id);
   if (root.children.length === 0) {
     const children = childRows(value);
-    root.children = children.map((child, childIndex) => normalizeNode(child, id, childIndex + 1));
+    root.children = children
+      .filter(child => {
+        const childValue = asDict(child);
+        if (!childValue) return true;
+        return readString(childValue, ["id", "agentId", "agent_id", "nodeId", "node_id"], "") !== root.id;
+      })
+      .map((child, childIndex) => normalizeNode(child, id, childIndex + 1));
   }
   return {
     id,
@@ -170,7 +176,7 @@ function AgentNodeCard({ node, copy, onSelect, selectedId }: { node: AgentNode; 
         <span className="agent-graph-node-topline"><span className="agent-graph-node-icon"><IconBot width={14} height={14} /></span><StatusBadge status={node.status} copy={copy} /></span>
         <span className="agent-graph-node-name">{node.name}</span>
         <span className="agent-graph-node-role">{node.role}</span>
-        <span className="agent-graph-model">{node.model}</span>
+        <span className="agent-graph-model-wrap"><span className="agent-graph-model-label">{copy.model}</span><span className="agent-graph-model">{node.model}</span></span>
         <span className="agent-graph-node-metrics"><span>{node.turns} {copy.turns}</span><span>{formatCompact(totalTokens)} {copy.tokens}</span><span>{formatDuration(node.elapsedMs)}</span></span>
       </button>
       {node.children.length > 0 && <div className="agent-graph-children">{node.children.map(child => <AgentNodeCard key={child.id} node={child} copy={copy} onSelect={onSelect} selectedId={selectedId} />)}</div>}
