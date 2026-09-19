@@ -3,6 +3,7 @@ import { useKeyedClientResource } from "../client-resource";
 import { readJsonOrThrow } from "../fetch-json";
 import { IconActivity, IconBot, IconRefresh, IconX } from "../icons";
 import { useI18n, useT } from "../i18n/shared";
+import "../styles-agent-graph.css";
 
 type AgentStatus = "running" | "waiting" | "completed" | "error";
 
@@ -166,7 +167,7 @@ function AgentNodeCard({ node, copy, onSelect, selectedId }: { node: AgentNode; 
   return (
     <div className="agent-graph-node-branch">
       <button type="button" className={`agent-graph-node-card${selectedId === node.id ? " is-selected" : ""}`} onClick={() => onSelect(node)}>
-        <span className="agent-graph-node-topline"><span className="agent-graph-node-icon"><IconBot /></span><StatusBadge status={node.status} copy={copy} /></span>
+        <span className="agent-graph-node-topline"><span className="agent-graph-node-icon"><IconBot width={14} height={14} /></span><StatusBadge status={node.status} copy={copy} /></span>
         <span className="agent-graph-node-name">{node.name}</span>
         <span className="agent-graph-node-role">{node.role}</span>
         <span className="agent-graph-model">{node.model}</span>
@@ -224,9 +225,9 @@ export default function AgentGraph({ apiBase }: { apiBase: string }) {
   return (
     <div className="agent-graph-page">
       <div className="page-head agent-graph-page-head">
-        <div><div className="eyebrow"><IconActivity /> {copy.liveWorkflow}</div><h1 className="page-title">{copy.title}</h1><p className="page-sub">{copy.subtitle}</p></div>
+        <div><div className="eyebrow"><IconActivity width={14} height={14} /> {copy.liveWorkflow}</div><h1 className="page-title">{copy.title}</h1><p className="page-sub">{copy.subtitle}</p></div>
         <button type="button" className="btn btn-secondary agent-graph-refresh" onClick={() => resource.refresh()} disabled={resource.refreshing}>
-          <IconRefresh /> {resource.refreshing ? copy.refreshing : copy.refresh}
+          <IconRefresh width={14} height={14} /> {resource.refreshing ? copy.refreshing : copy.refresh}
         </button>
       </div>
       <div className="agent-graph-toolbar"><span>{copy.updated} {formatUpdated(state.updatedAt, locale)}</span><span className="agent-graph-poll"><span className="agent-graph-live-dot" /> {copy.polling}</span></div>
@@ -237,7 +238,7 @@ export default function AgentGraph({ apiBase }: { apiBase: string }) {
         <div><span>{copy.tokens}</span><strong>{formatCompact(totalTokens)}</strong></div>
       </section>
       {Boolean(resource.error) && !resource.data && <div className="notice notice-error agent-graph-notice"><span>{copy.loadFailed}</span><button type="button" className="btn btn-secondary" onClick={() => resource.refresh({ forceLoading: true })}>{copy.retry}</button></div>}
-      {resource.loading && !resource.data ? <div className="agent-graph-empty">{t("common.loading")}</div> : state.threads.length === 0 ? <div className="agent-graph-empty"><IconBot /><strong>{copy.empty}</strong><span>{copy.selectNode}</span></div> : (
+      {resource.loading && !resource.data ? <div className="agent-graph-empty">{t("common.loading")}</div> : state.threads.length === 0 ? <div className="agent-graph-empty"><IconBot width={36} height={36} /><strong>{copy.empty}</strong><span>{copy.selectNode}</span></div> : (
         <div className="agent-graph-threads">{state.threads.map(thread => (
           <section className="agent-graph-thread" key={thread.id}>
             <header className="agent-graph-thread-head"><div><span className="agent-graph-thread-kicker">{copy.thread}</span><h2>{thread.name}</h2><code>{thread.id}</code></div><StatusBadge status={thread.status} copy={copy} /></header>
@@ -247,7 +248,7 @@ export default function AgentGraph({ apiBase }: { apiBase: string }) {
       )}
       {selectedNode && <div className="agent-graph-detail-backdrop" role="presentation" onClick={() => setSelectedId(null)}>
         <aside className="agent-graph-detail" role="dialog" aria-modal="true" aria-label={selectedNode.name} onClick={event => event.stopPropagation()}>
-          <div className="agent-graph-detail-head"><div><span className="agent-graph-thread-kicker">{copy.agentDetail}</span><h2>{selectedNode.name}</h2></div><button type="button" className="icon-btn" onClick={() => setSelectedId(null)} aria-label={copy.close} title={copy.close}><IconX /></button></div>
+          <div className="agent-graph-detail-head"><div><span className="agent-graph-thread-kicker">{copy.agentDetail}</span><h2>{selectedNode.name}</h2></div><button type="button" className="icon-btn" onClick={() => setSelectedId(null)} aria-label={copy.close} title={copy.close}><IconX width={16} height={16} /></button></div>
           <StatusBadge status={selectedNode.status} copy={copy} />
           <p className="agent-graph-detail-role">{selectedNode.role}</p>
           <dl className="agent-graph-detail-list"><div><dt>{copy.model}</dt><dd><code>{selectedNode.model}</code></dd></div><div><dt>{copy.session}</dt><dd><code>{selectedNode.sessionId}</code></dd></div><div><dt>{copy.turns}</dt><dd>{selectedNode.turns}</dd></div><div><dt>{copy.elapsed}</dt><dd>{formatDuration(selectedNode.elapsedMs)}</dd></div><div><dt>{copy.tokens}</dt><dd>{formatCompact(selectedNode.inputTokens)} {copy.tokensIn} / {formatCompact(selectedNode.outputTokens)} {copy.tokensOut}</dd></div></dl>
