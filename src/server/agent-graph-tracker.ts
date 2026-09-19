@@ -178,6 +178,22 @@ export class AgentGraphTracker {
     }
   }
 
+  public updateRequestModel(params: {
+    threadId: string;
+    agentId: string;
+    model: string;
+  }): void {
+    const model = params.model.trim();
+    if (!model || model === "unknown") return;
+    const thread = this.threads.get(params.threadId);
+    const agent = thread?.agents[params.agentId];
+    if (!thread || !agent) return;
+    agent.model = model;
+    const now = new Date().toISOString();
+    agent.lastActiveAt = now;
+    thread.updatedAt = now;
+  }
+
   public recordRequestEnd(params: {
     threadId: string;
     agentId: string;

@@ -23,6 +23,9 @@ describe("AgentGraphTracker", () => {
       status: "running",
       model: "gpt-5.5",
     });
+
+    tracker.updateRequestModel({ threadId: "main-session", agentId: "main-agent", model: "gpt-6-astra" });
+    expect(tracker.getSnapshot().threads[0]?.root.model).toBe("gpt-6-astra");
   });
 
   test("keeps a main-agent stream running until its response body finishes", async () => {

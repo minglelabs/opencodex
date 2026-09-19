@@ -306,7 +306,7 @@ export function createWebsocketHandler(ctx: ServeOptionsContext) {
             parentId: graphContext.parentId,
             name: graphContext.name,
             role: graphContext.role,
-            model: logCtx.model,
+            model: typeof payload.model === "string" ? payload.model : logCtx.model,
           });
           let graphStatus = 200;
           let graphErrorReason: string | undefined;

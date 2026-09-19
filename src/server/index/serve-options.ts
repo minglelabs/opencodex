@@ -1364,6 +1364,17 @@ export function createServeOptions(ctx: ServeOptionsContext) {
             role: graphContext.role,
             model: logCtx.model,
           });
+          void req.clone().json().then(body => {
+            if (!body || typeof body !== "object" || Array.isArray(body)) return;
+            const model = (body as { model?: unknown }).model;
+            if (typeof model === "string") {
+              agentGraphTracker.updateRequestModel({
+                threadId: graphContext.threadId,
+                agentId: graphContext.agentId,
+                model,
+              });
+            }
+          }).catch(() => {});
 
           try {
             const response = await handleResponses(req, config, logCtx, {
