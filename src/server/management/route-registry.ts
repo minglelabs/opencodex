@@ -125,6 +125,7 @@ export const MANAGEMENT_ROUTES: readonly ManagementRoute[] = [
   { method: "POST", path: "/api/native-main-profiles/stage/heartbeat", module: "codex/native-profile-api", mutates: true },
   { method: "POST", path: "/api/native-main-profiles/switch", module: "codex/native-profile-api", mutates: true },
   // server/management/agent-settings-routes
+  { method: "GET", path: "/api/agent-graph", module: "server/management/agent-settings-routes", mutates: false },
   { method: "GET", path: "/api/claude-code", module: "server/management/agent-settings-routes", mutates: false },
   { method: "GET", path: "/api/claude-desktop", module: "server/management/agent-settings-routes", mutates: false },
   { method: "GET", path: "/api/claude-desktop/status", module: "server/management/agent-settings-routes", mutates: false },

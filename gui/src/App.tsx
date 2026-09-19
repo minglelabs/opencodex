@@ -11,9 +11,10 @@ import CodexSet from "./pages/CodexSet";
 import Integrations from "./pages/Integrations";
 import Startup from "./pages/Startup";
 import RemoteWorkspace from "./pages/RemoteWorkspace";
+import AgentGraph from "./pages/AgentGraph";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SidebarGithubRow } from "./components/sidebar-github-row";
-import { IconGrid, IconServer, IconBoxes, IconBot, IconList, IconActivity, IconHardDrive, IconCodex, IconMenu, IconSun, IconMoon, IconMonitor, IconGlobe, IconPower, IconX, IconRefresh} from "./icons";
+import { IconGrid, IconServer, IconBoxes, IconBot, IconList, IconActivity, IconHardDrive, IconCodex, IconMenu, IconSun, IconMoon, IconMonitor, IconGlobe, IconPower, IconX, IconRefresh, IconShuffle} from "./icons";
 import { useI18n, useT, LOCALES, localeDisplayName, type Locale, type TKey } from "./i18n/shared";
 import { Select } from "./ui";
 import { configureApiTargets, hasApiSession, installApiAuthFetch, installApiSessionFromHtml, logoutApiSession, SESSION_UNAVAILABLE_EVENT } from "./api";
@@ -39,6 +40,7 @@ const PAGE_TKEY: Record<Page, TKey> = {
   remote: "nav.remote",
   "codex-set": "nav.codexSet",
   integrations: "nav.integrations",
+  "agent-graph": "nav.agentGraph",
 };
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
@@ -67,6 +69,7 @@ const NAV: NavEntry[] = [
   { id: "providers", tkey: "nav.providers", Icon: IconServer },
   { id: "models", tkey: "nav.models", Icon: IconBoxes },
   { id: "subagents", tkey: "nav.subagents", Icon: IconBot },
+  { id: "agent-graph", tkey: "nav.agentGraph", Icon: IconShuffle },
   { id: "logs", tkey: "nav.logs", Icon: IconList },
   { id: "usage", tkey: "nav.usage", Icon: IconActivity },
   { id: "storage", tkey: "nav.storage", Icon: IconHardDrive },
@@ -447,6 +450,7 @@ export default function App() {
                 {page === "providers" && <Providers apiBase={sharedBase} />}
                 {page === "models" && <Models key={sharedBase} apiBase={sharedBase} restartEpoch={codexRestartEpoch} catalogSyncedAt={targets.catalogSyncedAt} />}
                 {page === "subagents" && <Subagents key={sharedBase} apiBase={sharedBase} />}
+                {page === "agent-graph" && <AgentGraph key={sharedBase} apiBase={sharedBase} />}
                 {page === "logs" && <Logs apiBase={sharedBase} />}
                 {page === "usage" && <Usage apiBase={sharedBase} connected={targets.connected} apiKeyId={targets.apiKeyId} />}
                 {page === "storage" && <Storage apiBase={sharedBase} />}

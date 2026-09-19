@@ -23,7 +23,7 @@ const VERSION = (() => {
 })();
 const GUI_SPA_PATHS = new Set([
   "/dashboard", "/startup", "/providers", "/models", "/subagents",
-  "/logs", "/usage", "/storage", "/codex-set", "/integrations",
+  "/logs", "/usage", "/storage", "/codex-set", "/integrations", "/agent-graph",
 ]);
 
 export interface MachineListenerDeps {

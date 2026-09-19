@@ -233,6 +233,11 @@ export async function handleAgentSettingsRoutes(ctx: ManagementContext): Promise
   // the catalog so multi-agent surface metadata stays fresh. The catalog build
   // itself never writes config — this endpoint is the only server-side mutation
   // surface for the flag.
+  if (url.pathname === "/api/agent-graph" && req.method === "GET") {
+    const { agentGraphTracker } = await import("../agent-graph-tracker");
+    return jsonResponse(agentGraphTracker.getSnapshot());
+  }
+
   if (url.pathname === "/api/v2" && req.method === "GET") {
     const {
       isMultiAgentV2Enabled, hasAgentsMaxThreads, getLogicalMaxThreads,
