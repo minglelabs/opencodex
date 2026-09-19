@@ -28,6 +28,7 @@ import {
   sendTextFrame,
   type WsData,
 } from "../ws-bridge";
+import { agentGraphTracker } from "../agent-graph-tracker";
 import {
   CodexAccountCooldownError,
   cooldownErrorMessage,
@@ -298,6 +299,17 @@ export function createWebsocketHandler(ctx: ServeOptionsContext) {
           const baseHeaders = ws.data.headers ?? new Headers();
           const fwd = new Headers({ "content-type": "application/json" });
           baseHeaders.forEach((value, key) => fwd.set(key, value));
+          const graphContext = agentGraphTracker.resolveContext(baseHeaders);
+          agentGraphTracker.recordRequestStart({
+            threadId: graphContext.threadId,
+            agentId: graphContext.agentId,
+            parentId: graphContext.parentId,
+            name: graphContext.name,
+            role: graphContext.role,
+            model: logCtx.model,
+          });
+          let graphStatus = 200;
+          let graphErrorReason: string | undefined;
           const req = new Request("http://localhost/v1/responses", {
             method: "POST",
             headers: fwd,
@@ -319,21 +331,33 @@ export function createWebsocketHandler(ctx: ServeOptionsContext) {
                 terminalRecorder = recorder;
               },
             });
+            graphStatus = response.status;
             await sendResponseToWebSocket(ws, response, isCurrent, {
               untilEof: nativeControl?.relayActive === true,
               onSsePayload: nativeControl?.relayActive
                 ? createNativeSteeringLogObserver(logCtx, () => recordFirstOutput(logCtx, start))
                 : payload => inspectResponseLogSsePayload(logCtx, payload),
               onTerminal: status => {
+                const terminalHttpStatus = httpStatusForRequestLogTerminal(status, logCtx);
+                graphStatus = terminalHttpStatus;
                 terminalRecorder?.(status, logCtx.terminalHttpStatus);
-                finalizeLog(httpStatusForRequestLogTerminal(status, logCtx), {
+                finalizeLog(terminalHttpStatus, {
                   terminalStatus: status,
                   closeReason: "terminal",
                 });
               },
             });
-            if (!logged) finalizeLog(turnAbort.signal.aborted ? 499 : response.status);
+            if (!logged) {
+              graphStatus = turnAbort.signal.aborted ? 499 : response.status;
+              finalizeLog(graphStatus);
+            }
           } catch (err) {
+            graphStatus = turnAbort.signal.aborted
+              ? 499
+              : err instanceof CodexAccountCooldownError ? 429 : 502;
+            graphErrorReason = turnAbort.signal.aborted
+              ? "client_cancel"
+              : err instanceof Error ? err.name : "websocket_turn_error";
             if (!isCurrent()) return;
             try {
               if (err instanceof CodexAccountCooldownError) {
@@ -360,7 +384,20 @@ export function createWebsocketHandler(ctx: ServeOptionsContext) {
           } finally {
             turnAdmissionLease.release();
             if (ws.data.nativeControl === nativeControl) ws.data.nativeControl = undefined;
-            if (!logged && turnAbort.signal.aborted) finalizeLog(499);
+            if (!logged && turnAbort.signal.aborted) {
+              graphStatus = 499;
+              graphErrorReason = "client_cancel";
+              finalizeLog(499);
+            }
+            agentGraphTracker.recordRequestEnd({
+              threadId: graphContext.threadId,
+              agentId: graphContext.agentId,
+              model: logCtx.model,
+              inputTokens: logCtx.usage?.inputTokens,
+              outputTokens: logCtx.usage?.outputTokens,
+              status: graphStatus,
+              errorReason: graphErrorReason,
+            });
             if (ws.data.cancel === cancelTurn) ws.data.cancel = undefined;
           }
         })();

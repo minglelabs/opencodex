@@ -57,8 +57,10 @@ describe("WS endpoint re-framer (120/132)", () => {
     expect(source).toContain("const WEBSOCKET_IDLE_TIMEOUT_SECONDS = 0;");
     expect(source).toContain("websocket: createWebsocketHandler(ctx),");
     expect(source).toContain("idleTimeout: WEBSOCKET_IDLE_TIMEOUT_SECONDS,");
-    expect(source).toContain("finalizeLog(httpStatusForRequestLogTerminal(status, logCtx), {");
-    expect(source).toContain("if (!logged) finalizeLog(turnAbort.signal.aborted ? 499 : response.status);");
+    expect(source).toContain("const terminalHttpStatus = httpStatusForRequestLogTerminal(status, logCtx);");
+    expect(source).toContain("graphStatus = terminalHttpStatus;");
+    expect(source).toContain("if (!logged) {");
+    expect(source).toContain("graphStatus = turnAbort.signal.aborted ? 499 : response.status;");
   });
 
   test("an immortal websocket is paired with a proxy that fails closed on expired continuation state", () => {
