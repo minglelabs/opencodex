@@ -46,8 +46,7 @@ describe("AgentGraphTracker", () => {
 
     expect(tracker.getSnapshot().threads[0]?.root.status).toBe("running");
     await expect(response.text()).resolves.toBe("done");
-    expect(tracker.getSnapshot().threads[0]?.root.status).toBe("idle");
-    expect(tracker.getSnapshot().threads[0]?.status).toBe("idle");
+    expect(tracker.getSnapshot().threads).toEqual([]);
   });
 
   test("keeps thread labels distinct when UUIDs share their first eight characters", () => {
@@ -63,5 +62,38 @@ describe("AgentGraphTracker", () => {
     expect(new Set(titles).size).toBe(2);
     expect(titles).toContain("Thread 01a0bac7…aaaa");
     expect(titles).toContain("Thread 01a0bac7…bbbb");
+  });
+
+  test("exposes active threads in their creation order, regardless of updatedAt", () => {
+    const tracker = new AgentGraphTracker();
+    tracker.recordRequestStart({ threadId: "first", agentId: "main-agent", model: "gpt-5.5" });
+    tracker.recordRequestStart({ threadId: "second", agentId: "main-agent", model: "gpt-5.5" });
+    tracker.updateRequestModel({ threadId: "first", agentId: "main-agent", model: "gpt-6-astra" });
+
+    expect(tracker.getSnapshot().threads.map(thread => thread.id)).toEqual(["first", "second"]);
+  });
+
+  test("removes idle, completed, and error threads from the active snapshot", () => {
+    const tracker = new AgentGraphTracker();
+    for (const threadId of ["idle", "completed", "error", "active"]) {
+      tracker.recordRequestStart({ threadId, agentId: "main-agent", model: "gpt-5.5" });
+    }
+    tracker.recordRequestEnd({ threadId: "idle", agentId: "main-agent", status: 200 });
+    tracker.markThreadCompleted("completed");
+    tracker.recordRequestEnd({ threadId: "error", agentId: "main-agent", status: 500 });
+
+    expect(tracker.getSnapshot().threads.map(thread => thread.id)).toEqual(["active"]);
+  });
+
+  test("keeps a thread active while another agent is still running after an agent error", () => {
+    const tracker = new AgentGraphTracker();
+    tracker.recordRequestStart({ threadId: "parallel", agentId: "main-agent", model: "gpt-5.5" });
+    tracker.recordRequestStart({ threadId: "parallel", agentId: "child-agent", parentId: "main-agent", model: "gpt-5.5" });
+    tracker.recordRequestEnd({ threadId: "parallel", agentId: "child-agent", status: 500, errorReason: "child_failed" });
+
+    const thread = tracker.getSnapshot().threads[0];
+    expect(thread?.status).toBe("active");
+    expect(thread?.agents.find(agent => agent.id === "child-agent")?.status).toBe("error");
+    expect(thread?.agents.find(agent => agent.id === "main-agent")?.status).toBe("running");
   });
 });

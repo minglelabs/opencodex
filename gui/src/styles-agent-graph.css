@@ -16,7 +16,14 @@
 .agent-graph-summary strong { font-family: var(--font-code); font-size: 22px; font-weight: var(--weight-semibold); }
 .agent-graph-summary-running { color: var(--green); }
 .agent-graph-threads { display: grid; gap: 16px; }
-.agent-graph-thread { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: 0 12px 28px color-mix(in srgb, var(--text) 4%, transparent); }
+.agent-graph-thread { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: 0 12px 28px color-mix(in srgb, var(--text) 4%, transparent); }
+.agent-graph-thread::before { position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--agent-thread-color); content: ""; opacity: .72; }
+.agent-graph-thread--color-0 { --agent-thread-color: #5b8def; }
+.agent-graph-thread--color-1 { --agent-thread-color: #7b6ee8; }
+.agent-graph-thread--color-2 { --agent-thread-color: #d47a9a; }
+.agent-graph-thread--color-3 { --agent-thread-color: #2ea88f; }
+.agent-graph-thread--color-4 { --agent-thread-color: #d49a4c; }
+.agent-graph-thread--color-5 { --agent-thread-color: #58a7c9; }
 .agent-graph-thread-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--border-soft); background: color-mix(in srgb, var(--raised) 55%, transparent); }
 .agent-graph-thread-head h2, .agent-graph-detail h2 { margin: 3px 0 3px; font-size: var(--text-section); font-weight: var(--weight-semibold); }
 .agent-graph-thread-head code { color: var(--muted); font-family: var(--font-code); font-size: var(--text-micro); }

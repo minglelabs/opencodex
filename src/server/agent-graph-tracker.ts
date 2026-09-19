@@ -231,9 +231,14 @@ export class AgentGraphTracker {
       }
     }
 
-    // Check if all agents are idle
-    const allIdle = Object.values(thread.agents).every(a => a.status === "idle" || a.status === "completed");
-    if (allIdle && thread.status === "active") {
+    // An error in one agent does not end the Thread while another agent is
+    // still running. Keep the live graph visible until every agent settles.
+    const agents = Object.values(thread.agents);
+    if (agents.some(a => a.status === "running")) {
+      thread.status = "active";
+    } else if (agents.some(a => a.status === "error")) {
+      thread.status = "error";
+    } else {
       thread.status = "idle";
     }
   }
@@ -337,6 +342,9 @@ export class AgentGraphTracker {
     const resultThreads: AgentGraphResponse["threads"] = [];
 
     for (const thread of this.threads.values()) {
+      // The graph is a live view. Completed requests remain in the tracker for
+      // status/debugging, but must not be returned as active graph threads.
+      if (thread.status !== "active") continue;
       const agentList = Object.values(thread.agents);
       if (agentList.length === 0) continue;
 
@@ -373,9 +381,6 @@ export class AgentGraphTracker {
         agents: Array.from(agentMap.values()),
       });
     }
-
-    // Sort by most recently updated
-    resultThreads.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
     return {
       threads: resultThreads,

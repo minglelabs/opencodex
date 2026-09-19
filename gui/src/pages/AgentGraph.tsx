@@ -163,6 +163,14 @@ function formatUpdated(value: string, locale: string): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+function threadColorSlot(threadId: string): number {
+  let hash = 0;
+  for (let index = 0; index < threadId.length; index += 1) {
+    hash = ((hash << 5) - hash + threadId.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash) % 6;
+}
+
 function StatusBadge({ status, copy }: { status: AgentStatus; copy: GraphCopy }) {
   const label = copy[status];
   return <span className={`agent-graph-status agent-graph-status--${status}`}><span className="agent-graph-status-dot" />{label}</span>;
@@ -246,7 +254,7 @@ export default function AgentGraph({ apiBase }: { apiBase: string }) {
       {Boolean(resource.error) && !resource.data && <div className="notice notice-error agent-graph-notice"><span>{copy.loadFailed}</span><button type="button" className="btn btn-secondary" onClick={() => resource.refresh({ forceLoading: true })}>{copy.retry}</button></div>}
       {resource.loading && !resource.data ? <div className="agent-graph-empty">{t("common.loading")}</div> : state.threads.length === 0 ? <div className="agent-graph-empty"><IconBot width={36} height={36} /><strong>{copy.empty}</strong><span>{copy.selectNode}</span></div> : (
         <div className="agent-graph-threads">{state.threads.map(thread => (
-          <section className="agent-graph-thread" key={thread.id}>
+          <section className={`agent-graph-thread agent-graph-thread--color-${threadColorSlot(thread.id)}`} key={thread.id}>
             <header className="agent-graph-thread-head"><div><span className="agent-graph-thread-kicker">{copy.thread}</span><h2>{thread.name}</h2><code>{thread.id}</code></div><StatusBadge status={thread.status} copy={copy} /></header>
             <div className="agent-graph-tree"><AgentNodeCard node={thread.root} copy={copy} onSelect={node => setSelectedId(node.id)} selectedId={selectedId} /></div>
           </section>
