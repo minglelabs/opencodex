@@ -99,7 +99,9 @@ export class AgentGraphTracker {
     let name = "Main Agent";
 
     if (isSubagent || metaSubagentKind === "thread_spawn") {
-      const specificId = threadIdHeader && threadIdHeader !== parentThreadHeader ? threadIdHeader : sessionIdHeader;
+      const specificId = threadIdHeader && threadIdHeader !== parentThreadHeader
+        ? threadIdHeader
+        : sessionIdHeader || (metaThreadId && metaThreadId !== parentThreadHeader ? metaThreadId : undefined);
       agentId = specificId ? `subagent-${specificId}` : `subagent-${Date.now()}`;
       parentId = "main-agent";
       role = "Worker";
@@ -218,6 +220,88 @@ export class AgentGraphTracker {
     }
   }
 
+  /**
+   * Keeps an agent running until the response body is consumed or cancelled.
+   * Responses requests return before an SSE stream finishes, so recording the
+   * request at the handler boundary would make the live graph look idle.
+   */
+  public trackResponse(
+    response: Response,
+    params: {
+      threadId: string;
+      agentId: string;
+      model?: string;
+      getModel?: () => string;
+      getUsage?: () => { inputTokens?: number; outputTokens?: number };
+      abortSignal?: AbortSignal;
+    },
+  ): Response {
+    const finish = (status: number, errorReason?: string) => {
+      const usage = params.getUsage?.();
+      this.recordRequestEnd({
+        threadId: params.threadId,
+        agentId: params.agentId,
+        model: params.getModel?.() || params.model,
+        inputTokens: usage?.inputTokens,
+        outputTokens: usage?.outputTokens,
+        status,
+        errorReason,
+      });
+    };
+
+    let settled = false;
+    let removeAbortListener: (() => void) | undefined;
+    const settle = (status: number, errorReason?: string) => {
+      if (settled) return;
+      settled = true;
+      removeAbortListener?.();
+      finish(status, errorReason);
+    };
+
+    if (params.abortSignal) {
+      const onAbort = () => settle(499, "client_cancel");
+      if (params.abortSignal.aborted) {
+        settle(499, "client_cancel");
+      } else {
+        params.abortSignal.addEventListener("abort", onAbort, { once: true });
+        removeAbortListener = () => params.abortSignal?.removeEventListener("abort", onAbort);
+      }
+    }
+
+    if (!response.body) {
+      settle(response.status);
+      return response;
+    }
+
+    const reader = response.body.getReader();
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            settle(response.status);
+            controller.close();
+            return;
+          }
+          if (value) controller.enqueue(value);
+        } catch (error) {
+          settle(502, error instanceof Error ? error.name : "stream_error");
+          try { controller.error(error); } catch { /* already torn down */ }
+        }
+      },
+      async cancel(reason) {
+        settle(499, "client_cancel");
+        await reader.cancel(reason).catch(() => {});
+      },
+    });
+
+    return new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    });
+  }
+
   public markThreadCompleted(threadId: string): void {
     const thread = this.threads.get(threadId);
     if (!thread) return;
@@ -283,4 +367,3 @@ export class AgentGraphTracker {
 }
 
 export const agentGraphTracker = AgentGraphTracker.getInstance();
-

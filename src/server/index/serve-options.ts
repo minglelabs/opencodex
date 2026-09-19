@@ -84,6 +84,7 @@ import {
 } from "../request-log";
 import { sessionLaneIdFromRequest } from "../request-log-conversation";
 import { responseWithDeferredRequestLog } from "../relay";
+import { agentGraphTracker } from "../agent-graph-tracker";
 import {
   corsHeaders,
   managementCorsHeaders,
@@ -1354,26 +1355,55 @@ export function createServeOptions(ctx: ServeOptionsContext) {
           addFinalRequestLog(requestId, start, logCtx, status, meta);
         };
         return runAdmittedHttpTurn(req, policy, async turnAdmissionLease => {
-          const response = await handleResponses(req, config, logCtx, {
-            turnAdmissionLease,
-            admission,
-            onRequestBodyRead: () => disableResponsesRequestTimeout(req, requestServer),
-            abortSignal: req.signal,
-            onFirstOutput: () => recordFirstOutput(logCtx, start),
-            onNativePassthroughTerminal: status => {
-              finalizeNativePassthroughLog(httpStatusForRequestLogTerminal(status, logCtx), {
-                terminalStatus: status,
-                closeReason: "terminal",
-              });
-            },
-            onNativePassthroughCancel: () => {
-              finalizeNativePassthroughLog(499, { closeReason: "client_cancel" });
-            },
+          const graphContext = agentGraphTracker.resolveContext(req.headers);
+          agentGraphTracker.recordRequestStart({
+            threadId: graphContext.threadId,
+            agentId: graphContext.agentId,
+            parentId: graphContext.parentId,
+            name: graphContext.name,
+            role: graphContext.role,
+            model: logCtx.model,
           });
-          return withRequestLogId(
-            withCors(responseWithDeferredRequestLog(response, requestId, start, logCtx), req, policy),
-            requestId,
-          );
+
+          try {
+            const response = await handleResponses(req, config, logCtx, {
+              turnAdmissionLease,
+              admission,
+              onRequestBodyRead: () => disableResponsesRequestTimeout(req, requestServer),
+              abortSignal: req.signal,
+              onFirstOutput: () => recordFirstOutput(logCtx, start),
+              onNativePassthroughTerminal: status => {
+                finalizeNativePassthroughLog(httpStatusForRequestLogTerminal(status, logCtx), {
+                  terminalStatus: status,
+                  closeReason: "terminal",
+                });
+              },
+              onNativePassthroughCancel: () => {
+                finalizeNativePassthroughLog(499, { closeReason: "client_cancel" });
+              },
+            });
+            const loggedResponse = responseWithDeferredRequestLog(response, requestId, start, logCtx);
+            const trackedResponse = agentGraphTracker.trackResponse(loggedResponse, {
+              threadId: graphContext.threadId,
+              agentId: graphContext.agentId,
+              getModel: () => logCtx.model,
+              getUsage: () => ({
+                inputTokens: logCtx.usage?.inputTokens,
+                outputTokens: logCtx.usage?.outputTokens,
+              }),
+              abortSignal: req.signal,
+            });
+            return withRequestLogId(withCors(trackedResponse, req, policy), requestId);
+          } catch (error) {
+            agentGraphTracker.recordRequestEnd({
+              threadId: graphContext.threadId,
+              agentId: graphContext.agentId,
+              model: logCtx.model,
+              status: req.signal.aborted ? 499 : 500,
+              errorReason: error instanceof Error ? error.name : "request_error",
+            });
+            throw error;
+          }
         }, { requestId, start, logCtx });
       }
 
